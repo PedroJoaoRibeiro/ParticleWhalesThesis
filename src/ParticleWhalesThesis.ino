@@ -7,6 +7,7 @@
 //------- My Imports
 #include "sensors/Bar100Sensor.h"
 #include "sensors/TurbiditySensor.h"
+#include "sensors/PHMeterSensor.h"
 
 //ENABLES threads needed for softap Mode
 SYSTEM_THREAD(ENABLED)
@@ -52,7 +53,11 @@ void loop() {
 
   TurbiditySensor tb;
   tb.record();
-  Serial.println(tb.getRecordValue());
+  //Serial.println(tb.getRecordValue());
+
+  PHMeterSensor ph;
+  ph.record();
+  Serial.println(ph.getRecordValue());
 
 
 
