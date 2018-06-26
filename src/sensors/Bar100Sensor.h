@@ -1,11 +1,15 @@
 #include "Particle.h"
+#include "SensorsInterface.h"
+#include "KellerLD.h"
 
 
-class Bar100Sensor {
+class Bar100Sensor: public SensorsInterface {
 
-  int fluidDensity;
+  int _fluidDensity;
+  KellerLD sensor;
 
   public:
     Bar100Sensor(int fluidDensity);
-    void record();
+    virtual void record();
+    virtual String getRecordValue();
 };

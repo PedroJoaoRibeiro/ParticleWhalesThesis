@@ -2,22 +2,30 @@
 #include "Particle.h"
 #include "SdFat.h"
 #include "softap_http.h"
+#include "math.h"
 
-
+//------- My Imports
+#include "sensors/Bar100Sensor.h"
+#include "sensors/TurbiditySensor.h"
 
 //ENABLES threads needed for softap Mode
 SYSTEM_THREAD(ENABLED)
 
 //------- SDCARD SETTINGS
-SdFat sd(1);
-const uint8_t chipSelect = D1;
-File myFile;
+//#define SPI_CONFIGURATION 1
+//SdFat sd(1);
+//const uint8_t chipSelect = D2;
+//File myFile;
 String fileName = "data.csv";
 
 #define BUFFER_SIZE 5120
 
 // Forward Declaration of functions
-void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved);
+//void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved);
+
+
+
+
 
 
 // setup() runs once, when the device is first turned on.
@@ -27,8 +35,7 @@ void setup() {
   Serial.println("Connected to Particle ");
 
 
-  connectSDCard();
-
+  //connectSDCard();
 
 
   // register the cloud function
@@ -38,8 +45,19 @@ void setup() {
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
+
+  Bar100Sensor bar(997); // kg/m^3 (freshwater, 1029 for seawater)
+  bar.record();
+  //Serial.println(bar.getRecordValue());
+
+  TurbiditySensor tb;
+  tb.record();
+  Serial.println(tb.getRecordValue());
+
+
+
   delay(5000);
-  Serial.println("here");
+
 }
 
 
@@ -52,7 +70,7 @@ void setupSerial(){
     SysCall::yield();
   }
 }
-
+/*
 // connects the sdCard
 void connectSDCard(){
   // Initialize SdFat or print a detailed error message and halt
@@ -61,8 +79,8 @@ void connectSDCard(){
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) {
     sd.initErrorHalt();
   }
-}
-
+}*/
+/*
 void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved)
 {
     Serial.printlnf("handling page %s", url);
@@ -152,13 +170,13 @@ String getFinalJsonbody(bool b){
   jsonBody += "}";
   return jsonBody;
 }
-
+*/
 // Debug functions
 int debug(String s){
   //starts listening Mode with a timout
   WiFi.listen();
   //WiFi.setListenTimeout(60);
-  softap_set_application_page_handler(myPage, nullptr);
+  //softap_set_application_page_handler(myPage, nullptr);
   Serial.println("Now Listening: ");
   return 0;
 }
