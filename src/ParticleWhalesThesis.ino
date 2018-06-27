@@ -69,10 +69,10 @@ void loop() {
 
 // Reads the sensors values
 void readSensors(){
-  Bar100Sensor bar(997); // kg/m^3 (freshwater, 1029 for seawater)
-  bar.record();
+  Bar100Sensor bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
+  bar100Sensor.record();
   Serial.println("pressure, temperature, depth, altitude");
-  Serial.println(bar.getRecordValue());
+  Serial.println(bar100Sensor.getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
@@ -99,6 +99,7 @@ void readSensors(){
   Serial.println("----------------");
   Serial.println("----------------");
 
+  dissolvedOxygenSensor.setTemperature(25);
   dissolvedOxygenSensor.record();
   Serial.println("DissolvedOxygenSensor: ");
   Serial.println(dissolvedOxygenSensor.getRecordValue());

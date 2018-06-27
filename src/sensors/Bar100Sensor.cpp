@@ -28,3 +28,7 @@ String Bar100Sensor::getRecordValue(){
   str += String(sensor.altitude()) + ",";
   return str;
 }
+
+float Bar100Sensor::getTemperature(){
+  return sensor.temperature();
+}

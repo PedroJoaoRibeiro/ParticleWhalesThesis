@@ -12,4 +12,6 @@ class Bar100Sensor: public SensorsInterface {
     Bar100Sensor(int fluidDensity);
     virtual void record();
     virtual String getRecordValue();
+
+    float getTemperature();
 };
