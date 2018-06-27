@@ -11,7 +11,7 @@ Bar100Sensor::Bar100Sensor(int fluidDensity){
   sensor.setFluidDensity(fluidDensity);
 
   if (sensor.isInitialized()) {
-    Serial.println("Sensor connected.");
+    Serial.println("Bar100 Sensor connected.");
   } else {
     Serial.println("Sensor not connected.");
   }

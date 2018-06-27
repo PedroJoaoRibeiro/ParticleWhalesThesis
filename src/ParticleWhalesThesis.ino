@@ -8,21 +8,30 @@
 #include "sensors/Bar100Sensor.h"
 #include "sensors/TurbiditySensor.h"
 #include "sensors/PHMeterSensor.h"
+#include "sensors/GPSSensor.h"
+#include "sensors/DissolvedOxygenSensor.h"
+
+//------- My Sensors Objects
+TurbiditySensor turbiditySensor;
+PHMeterSensor phMeterSensor;
+GPSSensor gpsSensor;
+DissolvedOxygenSensor dissolvedOxygenSensor;
+
 
 //ENABLES threads needed for softap Mode
 SYSTEM_THREAD(ENABLED)
 
 //------- SDCARD SETTINGS
-//#define SPI_CONFIGURATION 1
-//SdFat sd(1);
-//const uint8_t chipSelect = D2;
-//File myFile;
+
+SdFatSoftSpi<D3, D2, D4> sd;
+const uint8_t chipSelect = D5;
+File myFile;
 String fileName = "data.csv";
 
 #define BUFFER_SIZE 5120
 
 // Forward Declaration of functions
-//void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved);
+void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved);
 
 
 
@@ -36,7 +45,7 @@ void setup() {
   Serial.println("Connected to Particle ");
 
 
-  //connectSDCard();
+  connectSDCard();
 
 
   // register the cloud function
@@ -47,22 +56,55 @@ void setup() {
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
 
+
+  readSensors();
+
+
+  //System.sleep(SLEEP_MODE_DEEP,1 * 60 * 1000); // 1 min
+
+  delay(60 * 1000); // 10 minutes
+
+}
+
+
+// Reads the sensors values
+void readSensors(){
   Bar100Sensor bar(997); // kg/m^3 (freshwater, 1029 for seawater)
   bar.record();
-  //Serial.println(bar.getRecordValue());
+  Serial.println("pressure, temperature, depth, altitude");
+  Serial.println(bar.getRecordValue());
 
-  TurbiditySensor tb;
-  tb.record();
-  //Serial.println(tb.getRecordValue());
+  Serial.println("----------------");
+  Serial.println("----------------");
 
-  PHMeterSensor ph;
-  ph.record();
-  Serial.println(ph.getRecordValue());
+  turbiditySensor.record();
+  Serial.println("Turbidity  1 == HIGH || 0 == LOW");
+  Serial.println(turbiditySensor.getRecordValue());
+
+  Serial.println("----------------");
+  Serial.println("----------------");
+
+  phMeterSensor.record();
+  Serial.println("PH: ");
+  Serial.println(phMeterSensor.getRecordValue());
+
+  Serial.println("----------------");
+  Serial.println("----------------");
+
+  gpsSensor.record();
+  Serial.println("GPS    Lat, Long");
+  Serial.println(gpsSensor.getRecordValue());
 
 
+  Serial.println("----------------");
+  Serial.println("----------------");
 
-  delay(5000);
+  dissolvedOxygenSensor.record();
+  Serial.println("DissolvedOxygenSensor: ");
+  Serial.println(dissolvedOxygenSensor.getRecordValue());
 
+  Serial.println("----------------");
+  Serial.println("----------------");
 }
 
 
@@ -75,7 +117,7 @@ void setupSerial(){
     SysCall::yield();
   }
 }
-/*
+
 // connects the sdCard
 void connectSDCard(){
   // Initialize SdFat or print a detailed error message and halt
@@ -84,8 +126,8 @@ void connectSDCard(){
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) {
     sd.initErrorHalt();
   }
-}*/
-/*
+}
+
 void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved)
 {
     Serial.printlnf("handling page %s", url);
@@ -175,7 +217,7 @@ String getFinalJsonbody(bool b){
   jsonBody += "}";
   return jsonBody;
 }
-*/
+
 // Debug functions
 int debug(String s){
   //starts listening Mode with a timout
