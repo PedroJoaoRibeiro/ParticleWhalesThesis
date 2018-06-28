@@ -59,7 +59,6 @@ void setup() {
 
   connectSDCard();
 
-  changeDirectory("Audio");
   // register the cloud function
   Particle.function("enableap", enableSoftAp);
   Particle.function("enableread", enableReading);
@@ -258,6 +257,8 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
         return;
     }
 
+
+
     String auxURl = url;
     String dataPart = auxURl.substring(auxURl.indexOf("?") + 1, auxURl.length());
     Serial.println("dataPat: " + dataPart);
@@ -266,10 +267,57 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
         cb(cbArg, 0, 200, "text/json", nullptr);
         result->write(dataToSend(dataPart));
     }
+    else if (strcmp(auxURl.substring(0,auxURl.indexOf("?")),"/audio")==0) {
+        cb(cbArg, 0, 200, "text/json", nullptr);
+        result->write(audioToSend(dataPart.substring(0,dataPart.indexOf("?")), dataPart.substring(dataPart.indexOf("?") + 1)));
+    }
     else {
         cb(cbArg, 0, 404, nullptr, nullptr);
     }
 }
+
+String audioToSend(String fileName, String dataPart){
+  connectSDCard();
+  changeDirectory("/Audio");
+  if (!myFile.open(fileName, O_READ)) {
+    Serial.println("File Not found " + fileName);
+    return "File Not found";
+  }
+  changeDirectory("/");
+
+  int i;
+  if (dataPart.length() == 0) {
+    Serial.println("sending new data");
+    i = 0;
+  }
+  else {
+    i = dataPart.toInt();
+    Serial.println("sending data from: " + dataPart);
+  }
+
+  // read from the file until there's nothing else in it:
+  int data;
+
+  String response = "";
+  myFile.seek(i);
+
+  while ((data = myFile.read()) >= 0) {
+    Serial.println(data);
+    char c = data;
+    response += c;
+    i ++;
+
+    if (response.length() >= BUFFER_SIZE) {
+      myFile.close();
+      return getInitialJsonBodyAudio(i) + response + getFinalJsonbody(false);
+    }
+  }
+
+  myFile.close();
+  return getInitialJsonBodyAudio(i) + response + getFinalJsonbody(true);
+
+}
+
 
 String dataToSend(String dataPart){
     connectSDCard();
@@ -287,7 +335,6 @@ String dataToSend(String dataPart){
     if (!myFile.open(cfg.fileName, O_READ)) {
       sd.errorHalt(("opening  " + cfg.fileName + " for read failed"));
     }
-    Serial.println((cfg.fileName + " content:"));
 
     // read from the file until there's nothing else in it:
     int data;
@@ -318,10 +365,17 @@ String dataToSend(String dataPart){
 
 String getInitialJsonBody(int dataPart){
   String jsonBody = "{ \"deviceId\": \"";
-  jsonBody += "PhotonTest1";
+  jsonBody += cfg.DEVICE_ID;
   jsonBody += "\",\"dataPart\":";
   jsonBody += dataPart;
   jsonBody += ",\"csvData\":\"";
+  return jsonBody;
+}
+
+String getInitialJsonBodyAudio(int dataPart){
+  String jsonBody = "{\"dataPart\":";
+  jsonBody += dataPart;
+  jsonBody += ",\"audioData\":\"";
   return jsonBody;
 }
 
