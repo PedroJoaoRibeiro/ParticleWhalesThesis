@@ -45,7 +45,7 @@ void DissolvedOxygenSensor::record(){
 }
 
 String DissolvedOxygenSensor::getRecordValue(){
-  return String(doValue);
+  return String(doValue) + ",";
 }
 
 void DissolvedOxygenSensor::setTemperature(float temp){

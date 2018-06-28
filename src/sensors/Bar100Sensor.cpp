@@ -22,10 +22,10 @@ void Bar100Sensor::record(){
 }
 
 String Bar100Sensor::getRecordValue(){
-  String str = String(sensor.pressure()) + ",";
-  str += String(sensor.temperature()) + ",";
+  String str = String(sensor.temperature()) + ",";
   str += String(sensor.depth()) + ",";
   str += String(sensor.altitude()) + ",";
+  str += String(sensor.pressure()) + ",";
   return str;
 }
 

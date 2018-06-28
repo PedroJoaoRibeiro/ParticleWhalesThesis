@@ -39,5 +39,5 @@ void GPSSensor::record(){
 
 String GPSSensor::getRecordValue(){
   String str = szInfo;
-  return str;
+  return str + ",";
 }

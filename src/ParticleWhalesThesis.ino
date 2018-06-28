@@ -10,12 +10,15 @@
 #include "sensors/PHMeterSensor.h"
 #include "sensors/GPSSensor.h"
 #include "sensors/DissolvedOxygenSensor.h"
+#include "sensors/TimeManager.h"
 
 //------- My Sensors Objects
-TurbiditySensor turbiditySensor;
-PHMeterSensor phMeterSensor;
-GPSSensor gpsSensor;
-DissolvedOxygenSensor dissolvedOxygenSensor;
+Bar100Sensor* bar100Sensor;
+TurbiditySensor* turbiditySensor;
+PHMeterSensor* phMeterSensor;
+GPSSensor* gpsSensor;
+DissolvedOxygenSensor* dissolvedOxygenSensor;
+TimeManager* timeManager;
 
 
 //ENABLES threads needed for softap Mode
@@ -51,6 +54,14 @@ void setup() {
   // register the cloud function
   Particle.function("debug", debug);
 
+  //Initialize Objects
+  bar100Sensor = new Bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
+  turbiditySensor = new TurbiditySensor();
+  phMeterSensor = new PHMeterSensor();
+  gpsSensor = new GPSSensor();
+  dissolvedOxygenSensor = new DissolvedOxygenSensor();
+  timeManager = new TimeManager();
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -69,40 +80,55 @@ void loop() {
 
 // Reads the sensors values
 void readSensors(){
-  Bar100Sensor bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
-  bar100Sensor.record();
-  Serial.println("pressure, temperature, depth, altitude");
-  Serial.println(bar100Sensor.getRecordValue());
+  timeManager->record();
+  Serial.println("Date:");
+  Serial.println(timeManager->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  turbiditySensor.record();
-  Serial.println("Turbidity  1 == HIGH || 0 == LOW");
-  Serial.println(turbiditySensor.getRecordValue());
+  Serial.println("audioFile");
+  Serial.println("TODO");
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  phMeterSensor.record();
-  Serial.println("PH: ");
-  Serial.println(phMeterSensor.getRecordValue());
-
-  Serial.println("----------------");
-  Serial.println("----------------");
-
-  gpsSensor.record();
+  gpsSensor->record();
   Serial.println("GPS    Lat, Long");
-  Serial.println(gpsSensor.getRecordValue());
+  Serial.println(gpsSensor->getRecordValue());
 
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  dissolvedOxygenSensor.setTemperature(25);
-  dissolvedOxygenSensor.record();
+
+  bar100Sensor->record();
+  Serial.println("pressure, temperature, depth, altitude");
+  Serial.println(bar100Sensor->getRecordValue());
+
+  Serial.println("----------------");
+  Serial.println("----------------");
+
+  turbiditySensor->record();
+  Serial.println("Turbidity  1 == HIGH || 0 == LOW");
+  Serial.println(turbiditySensor->getRecordValue());
+
+  Serial.println("----------------");
+  Serial.println("----------------");
+
+  phMeterSensor->record();
+  Serial.println("PH: ");
+  Serial.println(phMeterSensor->getRecordValue());
+
+  Serial.println("----------------");
+  Serial.println("----------------");
+
+
+
+  dissolvedOxygenSensor->setTemperature(bar100Sensor.getTemperature());
+  dissolvedOxygenSensor->record();
   Serial.println("DissolvedOxygenSensor: ");
-  Serial.println(dissolvedOxygenSensor.getRecordValue());
+  Serial.println(dissolvedOxygenSensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
