@@ -13,5 +13,5 @@ void TurbiditySensor::record(){
 }
 
 String TurbiditySensor::getRecordValue(){
-  return String(turbidity) + ",";
+  return String(turbidity);
 }

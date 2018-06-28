@@ -5,12 +5,21 @@
 #include "math.h"
 
 //------- My Imports
+#include "config.h"
+
 #include "sensors/Bar100Sensor.h"
 #include "sensors/TurbiditySensor.h"
 #include "sensors/PHMeterSensor.h"
 #include "sensors/GPSSensor.h"
 #include "sensors/DissolvedOxygenSensor.h"
 #include "sensors/TimeManager.h"
+
+#include "sound/SoundManager.h"
+
+
+#define BUFFER_SIZE 5120
+
+Config cfg = getDefaultConfig();
 
 //------- My Sensors Objects
 Bar100Sensor* bar100Sensor;
@@ -25,20 +34,20 @@ TimeManager* timeManager;
 SYSTEM_THREAD(ENABLED)
 
 //------- SDCARD SETTINGS
-
 SdFatSoftSpi<D3, D2, D4> sd;
 const uint8_t chipSelect = D5;
 File myFile;
-String fileName = "data.csv";
 
-#define BUFFER_SIZE 5120
+bool canRecord = false;
+
+
+// recordingSoundState
+enum State { STATE_STARTRECORDING, STATE_CONNECT, STATE_RUNNING, STATE_FINISH};
+State state = STATE_STARTRECORDING;
+unsigned long recordingStart;
 
 // Forward Declaration of functions
 void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved);
-
-
-
-
 
 
 // setup() runs once, when the device is first turned on.
@@ -50,9 +59,10 @@ void setup() {
 
   connectSDCard();
 
-
+  changeDirectory("Audio");
   // register the cloud function
-  Particle.function("debug", debug);
+  Particle.function("enableap", enableSoftAp);
+  Particle.function("enableread", enableReading);
 
   //Initialize Objects
   bar100Sensor = new Bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
@@ -62,18 +72,21 @@ void setup() {
   dissolvedOxygenSensor = new DissolvedOxygenSensor();
   timeManager = new TimeManager();
 
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
 
+  if(canRecord){
+    recordingSoundLoop();
+  }
 
-  readSensors();
 
 
   //System.sleep(SLEEP_MODE_DEEP,1 * 60 * 1000); // 1 min
 
-  delay(60 * 1000); // 10 minutes
+  //delay(60 * 1000); // 1 minute
 
 }
 
@@ -88,7 +101,7 @@ void readSensors(){
   Serial.println("----------------");
 
   Serial.println("audioFile");
-  Serial.println("TODO");
+  Serial.println(getAudiFileName());
 
   Serial.println("----------------");
   Serial.println("----------------");
@@ -125,13 +138,85 @@ void readSensors(){
 
 
 
-  dissolvedOxygenSensor->setTemperature(bar100Sensor.getTemperature());
+  dissolvedOxygenSensor->setTemperature(bar100Sensor->getTemperature());
   dissolvedOxygenSensor->record();
   Serial.println("DissolvedOxygenSensor: ");
   Serial.println(dissolvedOxygenSensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
+}
+
+
+void recordingSoundLoop(){
+  switch (state) {
+    // In this state we can start record
+    case STATE_STARTRECORDING:
+      connectSDCard();
+      readSensors();
+      recordingStart = millis();
+      changeDirectory("Audio");
+      startRecordingState(getAudiFileName());
+      changeDirectory("/");
+      state = STATE_RUNNING;
+      break;
+
+    // In this state we are waiting for the microphone record to finish
+    case STATE_RUNNING:
+      // check to see if if the recording time exceeded the maximum time
+      if (millis() - recordingStart >= cfg.MAX_RECORDING_LENGTH_MS) {
+        state = STATE_FINISH;
+      } else {
+        recordingState();
+      }
+      break;
+
+    // In this state we save all the sensors information to the SdCard
+    // Then setDelay for the next reading to start
+    case STATE_FINISH:
+      finishState();
+      saveRecordedData();
+      state = STATE_STARTRECORDING;
+
+      delay(60 * 1000);
+      break;
+  }
+}
+
+// Current Data
+//"date,audioFile,latitude,longitude,temperature,depth,altitude,pressure,turbidity,ph,oxygen"
+void saveRecordedData(){
+  if (!sd.exists(cfg.fileName)) {
+    Serial.println("File don't exists creating it now: " + cfg.fileName);
+    // open the file for write at end like the "Native SD library"
+    if (!myFile.open(cfg.fileName, O_RDWR | O_CREAT | O_AT_END)) {
+      sd.errorHalt(("opening " + cfg.fileName + " for write failed"));
+    }
+    myFile.println(cfg.csvInitialString);
+  }
+  else {
+    if (!myFile.open(cfg.fileName, O_RDWR | O_CREAT | O_AT_END)) {
+      sd.errorHalt(("opening " + cfg.fileName + " for write failed"));
+    }
+  }
+  String dataToWrite = timeManager->getRecordValue() + ","; //date
+  dataToWrite += getAudiFileName() + ",";                   //audioFile
+  dataToWrite += gpsSensor->getRecordValue() + ",";         //gps -> latitude,longitude
+  dataToWrite += bar100Sensor->getRecordValue() + ",";      //temperature,depth,altitude,pressure
+  dataToWrite += turbiditySensor->getRecordValue() + ",";   //turbidity
+  dataToWrite += phMeterSensor->getRecordValue() + ",";     //ph
+  dataToWrite += dissolvedOxygenSensor->getRecordValue();   //oxygen
+
+  Serial.println(System.freeMemory());
+  Serial.println(dataToWrite);
+  myFile.println(dataToWrite);
+  myFile.close();
+
+}
+
+String getAudiFileName(){
+  String aux = timeManager->getRecordValue().replace(":", "");
+  return cfg.DEVICE_ID + aux + ".wav";
 }
 
 
@@ -152,6 +237,13 @@ void connectSDCard(){
   // Change to SPI_FULL_SPEED for more performance.
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) {
     sd.initErrorHalt();
+  }
+}
+
+void changeDirectory(String path){
+  if(!sd.chdir(path, true)){
+    Serial.println("error changing directory: "+ path);
+    sd.errorHalt("error changing directory");
   }
 }
 
@@ -180,8 +272,8 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
 }
 
 String dataToSend(String dataPart){
+    connectSDCard();
     int i;
-
     if (dataPart.length() == 0) {
       Serial.println("sending new data");
       i = 0;
@@ -192,10 +284,10 @@ String dataToSend(String dataPart){
     }
 
     // open the file to read
-    if (!myFile.open(fileName, O_READ)) {
-      sd.errorHalt(("opening  " + fileName + " for read failed"));
+    if (!myFile.open(cfg.fileName, O_READ)) {
+      sd.errorHalt(("opening  " + cfg.fileName + " for read failed"));
     }
-    Serial.println((fileName + " content:"));
+    Serial.println((cfg.fileName + " content:"));
 
     // read from the file until there's nothing else in it:
     int data;
@@ -246,11 +338,17 @@ String getFinalJsonbody(bool b){
 }
 
 // Debug functions
-int debug(String s){
+int enableSoftAp(String s){
   //starts listening Mode with a timout
   WiFi.listen();
   //WiFi.setListenTimeout(60);
-  //softap_set_application_page_handler(myPage, nullptr);
+  softap_set_application_page_handler(myPage, nullptr);
   Serial.println("Now Listening: ");
+  return 0;
+}
+
+// Debug functions
+int enableReading(String s){
+  canRecord = true;
   return 0;
 }

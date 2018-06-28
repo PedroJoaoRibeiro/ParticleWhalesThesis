@@ -33,5 +33,5 @@ void PHMeterSensor::record(){
 }
 
 String PHMeterSensor::getRecordValue(){
-  return String(ph) + ",";
+  return String(ph);
 }
