@@ -3,6 +3,7 @@
 #include "SdFat.h"
 #include "softap_http.h"
 #include "math.h"
+#include "Base64RK.h"
 
 //------- My Imports
 #include "config.h"
@@ -17,7 +18,7 @@
 #include "sound/SoundManager.h"
 
 
-#define BUFFER_SIZE 5120
+int BUFFER_SIZE = 5120;
 
 Config cfg = getDefaultConfig();
 
@@ -299,22 +300,23 @@ String audioToSend(String fileName, String dataPart){
   int data;
 
   String response = "";
+  String encoded = "";
   myFile.seek(i);
 
   while ((data = myFile.read()) >= 0) {
-    Serial.println(data);
-    char c = data;
-    response += c;
+    response = data;
+    encoded += Base64::encodeToString((const uint8_t *)response.c_str(), response.length());
     i ++;
 
-    if (response.length() >= BUFFER_SIZE) {
+    if (encoded.length() >= BUFFER_SIZE ) {
       myFile.close();
-      return getInitialJsonBodyAudio(i) + response + getFinalJsonbody(false);
+      return getInitialJsonBodyAudio(i) + encoded + getFinalJsonbody(false);
     }
   }
 
   myFile.close();
-  return getInitialJsonBodyAudio(i) + response + getFinalJsonbody(true);
+  //encoded = Base64::encodeToString((const uint8_t *)response.c_str(), response.length());
+  return getInitialJsonBodyAudio(i) + encoded + getFinalJsonbody(true);
 
 }
 
