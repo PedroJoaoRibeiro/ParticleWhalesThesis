@@ -25,7 +25,7 @@ String Bar100Sensor::getRecordValue(){
   String str = String(sensor.temperature()) + ",";
   str += String(sensor.depth()) + ",";
   str += String(sensor.altitude()) + ",";
-  str += String(sensor.pressure());
+  str += String(sensor.pressure() * 0.001); // convert to bar
   return str;
 }
 
