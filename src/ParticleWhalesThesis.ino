@@ -79,14 +79,12 @@ void setup() {
 void loop() {
 
   if(canRecord){
+    if(timeManager->canReadSensors()){
+      readSensors();
+      saveRecordedData();
+    }
     recordingSoundLoop();
   }
-
-
-
-  //System.sleep(SLEEP_MODE_DEEP,1 * 60 * 1000); // 1 min
-
-  //delay(60 * 1000); // 1 minute
 
 }
 
@@ -96,12 +94,6 @@ void readSensors(){
   timeManager->record();
   Serial.println("Date:");
   Serial.println(timeManager->getRecordValue());
-
-  Serial.println("----------------");
-  Serial.println("----------------");
-
-  Serial.println("audioFile");
-  Serial.println(getAudiFileName());
 
   Serial.println("----------------");
   Serial.println("----------------");
@@ -153,7 +145,6 @@ void recordingSoundLoop(){
     // In this state we can start record
     case STATE_STARTRECORDING:
       connectSDCard();
-      readSensors();
       recordingStart = millis();
       changeDirectory("Audio");
       startRecordingState(getAudiFileName());
@@ -175,10 +166,8 @@ void recordingSoundLoop(){
     // Then setDelay for the next reading to start
     case STATE_FINISH:
       finishState();
-      saveRecordedData();
       state = STATE_STARTRECORDING;
-
-      delay(60 * 1000);
+      delay(1000);
       break;
   }
 }
@@ -186,6 +175,7 @@ void recordingSoundLoop(){
 // Current Data
 //"date,audioFile,latitude,longitude,temperature,depth,altitude,pressure,turbidity,ph,oxygen"
 void saveRecordedData(){
+  connectSDCard();
   if (!sd.exists(cfg.fileName)) {
     Serial.println("File don't exists creating it now: " + cfg.fileName);
     // open the file for write at end like the "Native SD library"
@@ -200,22 +190,21 @@ void saveRecordedData(){
     }
   }
   String dataToWrite = timeManager->getRecordValue() + ","; //date
-  dataToWrite += getAudiFileName() + ",";                   //audioFile
   dataToWrite += gpsSensor->getRecordValue() + ",";         //gps -> latitude,longitude
   dataToWrite += bar100Sensor->getRecordValue() + ",";      //temperature,depth,altitude,pressure
   dataToWrite += turbiditySensor->getRecordValue() + ",";   //turbidity
   dataToWrite += phMeterSensor->getRecordValue() + ",";     //ph
   dataToWrite += dissolvedOxygenSensor->getRecordValue();   //oxygen
 
-  Serial.println(System.freeMemory());
   Serial.println(dataToWrite);
+  Particle.publish("recordedData", dataToWrite);
   myFile.println(dataToWrite);
   myFile.close();
 
 }
 
 String getAudiFileName(){
-  String aux = timeManager->getRecordValue().replace(":", "");
+  String aux = timeManager->getDateNow().replace(":", "");
   return cfg.DEVICE_ID + aux + ".wav";
 }
 
@@ -268,56 +257,9 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
         cb(cbArg, 0, 200, "text/json", nullptr);
         result->write(dataToSend(dataPart));
     }
-    else if (strcmp(auxURl.substring(0,auxURl.indexOf("?")),"/audio")==0) {
-        cb(cbArg, 0, 200, "text/json", nullptr);
-        result->write(audioToSend(dataPart.substring(0,dataPart.indexOf("?")), dataPart.substring(dataPart.indexOf("?") + 1)));
-    }
     else {
         cb(cbArg, 0, 404, nullptr, nullptr);
     }
-}
-
-String audioToSend(String fileName, String dataPart){
-  connectSDCard();
-  changeDirectory("/Audio");
-  if (!myFile.open(fileName, O_READ)) {
-    Serial.println("File Not found " + fileName);
-    return "File Not found";
-  }
-  changeDirectory("/");
-
-  int i;
-  if (dataPart.length() == 0) {
-    Serial.println("sending new data");
-    i = 0;
-  }
-  else {
-    i = dataPart.toInt();
-    Serial.println("sending data from: " + dataPart);
-  }
-
-  // read from the file until there's nothing else in it:
-  int data;
-
-  String response = "";
-  String encoded = "";
-  myFile.seek(i);
-
-  while ((data = myFile.read()) >= 0) {
-    response = data;
-    encoded += Base64::encodeToString((const uint8_t *)response.c_str(), response.length());
-    i ++;
-
-    if (encoded.length() >= BUFFER_SIZE ) {
-      myFile.close();
-      return getInitialJsonBodyAudio(i) + encoded + getFinalJsonbody(false);
-    }
-  }
-
-  myFile.close();
-  //encoded = Base64::encodeToString((const uint8_t *)response.c_str(), response.length());
-  return getInitialJsonBodyAudio(i) + encoded + getFinalJsonbody(true);
-
 }
 
 
@@ -374,13 +316,6 @@ String getInitialJsonBody(int dataPart){
   return jsonBody;
 }
 
-String getInitialJsonBodyAudio(int dataPart){
-  String jsonBody = "{\"dataPart\":";
-  jsonBody += dataPart;
-  jsonBody += ",\"audioData\":\"";
-  return jsonBody;
-}
-
 String getFinalJsonbody(bool b){
   String jsonBody = "\",\"isFinalData\":";
   if (b) {
@@ -396,6 +331,9 @@ String getFinalJsonbody(bool b){
 // Debug functions
 int enableSoftAp(String s){
   //starts listening Mode with a timout
+  if (canRecord) {
+    canRecord = false;
+  }
   WiFi.listen();
   //WiFi.setListenTimeout(60);
   softap_set_application_page_handler(myPage, nullptr);
@@ -405,6 +343,9 @@ int enableSoftAp(String s){
 
 // Debug functions
 int enableReading(String s){
-  canRecord = true;
-  return 0;
+  canRecord = !canRecord;
+  if (canRecord) {
+    return 0;
+  }
+  return 1;
 }

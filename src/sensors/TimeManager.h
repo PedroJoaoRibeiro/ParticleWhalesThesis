@@ -10,7 +10,7 @@ class TimeManager: public SensorsInterface {
   SparkTime rtc;
 
   unsigned long currentTime;
-  unsigned long lastTime = 0UL;
+  unsigned long lastTime;
   String timeStr;
 
   public:
@@ -18,4 +18,7 @@ class TimeManager: public SensorsInterface {
     TimeManager();
     virtual void record();
     virtual String getRecordValue();
+    String getDateNow();
+    bool canReadSensors();
+
 };

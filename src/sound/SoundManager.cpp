@@ -43,7 +43,7 @@ short sample = 0;
 
 void startRecordingState(String fileName){
 	Serial.println("Start Recording audio");
-
+	Serial.println(fileName);
 	writeWavHeader(fileName);
 	// 8000 samples/sec = 125 microseconds (The minimum timer period is about 10 micrseconds)
 	timer.begin(timerISR, 1000000 / CONFIG.sampleRate, uSec);

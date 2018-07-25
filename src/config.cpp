@@ -7,14 +7,14 @@ Config getDefaultConfig(){
 		"PhotonTest1",	//Id of Device should be unique for each photon
 		12,							//Pin for the sd card
 		"data.csv",		//FileName
-		"date,audioFile,latitude,longitude,temperature,depth,altitude,pressure,turbidity,ph,oxygen", 						//Initial String of csvData change this to conform sensors available
+		"date,latitude,longitude,temperature,depth,altitude,pressure,turbidity,ph,oxygen", 						//Initial String of csvData change this to conform sensors available
 		0,							// Timezone 0 for gmt then + or - for each zone
 
 		5120, 					//BUFFER_SIZE
 
 
 		// recording vars
-		10000, 					// Maximum Recording Time
+		4000, 					// Maximum Recording Time
 		16000,					// Audio Sample Rate
 		11,							// PIN A1
 
