@@ -22,7 +22,7 @@ byte byte1, byte2, byte3, byte4;
 typedef struct {
 	volatile bool free = true;
 	volatile size_t  index = 0;
-	byte data[1024]; // = new byte[24576];
+	byte data[5120]; // = new byte[24576];
 } SampleBuf;
 
 SampleBuf buffers[2]; // = new SampleBuf[CONFIG.numberBuffers];
@@ -33,20 +33,35 @@ volatile size_t sendIndex = 0;
 byte buf00[1024];
 
 //----- AUX VARS
-int buffercount = 0;
-int writer = 0;
-int sendFile = 1;
+
+int writer = 1;
 short sample = 0;
+bool firstTime = true;
 
 
 //----- Main Recording loop
+void lauchTimer(){
+	// 8000 samples/sec = 125 microseconds (The minimum timer period is about 10 micrseconds)
+
+}
 
 void startRecordingState(String fileName){
+	writeWavHeader(fileName);
 	Serial.println("Start Recording audio");
 	Serial.println(fileName);
-	writeWavHeader(fileName);
-	// 8000 samples/sec = 125 microseconds (The minimum timer period is about 10 micrseconds)
-	timer.begin(timerISR, 1000000 / CONFIG.sampleRate, uSec);
+
+	for(size_t ii = 0; ii < 2; ii++) {
+				buffers[ii].free = true;
+				buffers[ii].index = 0;
+			}
+			sampleIndex = 0;
+			sendIndex = 0;
+
+	if (firstTime) {
+		timer.begin(timerISR, 1000000 / CONFIG.sampleRate, uSec, TIMER4);
+		firstTime = false;
+	}
+	writer = 0;
 }
 
 void recordingState(){
@@ -56,28 +71,20 @@ void recordingState(){
 		writer = 1;
 		rec.write(sb->data,CONFIG.sampleBufferSize);
 		writer = 0;
-		buffercount++;
 		sb->free = true;
 		sendIndex++;
 	}
 
-	/*if (buffercount >= CONFIG.bufferToWrite) {
-		// size bigger than expected need to stop recording
-		state = STATE_FINISH;
 
-	}*/
 }
 
 void finishState(){
 	Serial.println("Finish Recording");
-
-	timer.end();
+	writer = 1;
 	sampleIndex = 0;
   writeOutHeader();
 
-	buffercount = 0;
 	sendIndex = 0;
-	sendFile = 0;
 }
 
 
@@ -136,6 +143,7 @@ void writeOutHeader(){
 }
 
 void timerISR() {
+
 	// This is an interrupt service routine. Don't put any heavy calculations here
 	// or call anything that's not interrupt-safe, such as:
 	// Serial, String, any memory allocation (new, malloc, etc.), Particle.publish and other Particle methods, and more.

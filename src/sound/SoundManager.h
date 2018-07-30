@@ -11,6 +11,7 @@
 
 
 //----- FUNCTIONS
+void recordingSoundLoop(String fileName);
 void StartRec();
 void StopRec();
 void writeWavHeader(String fileName);

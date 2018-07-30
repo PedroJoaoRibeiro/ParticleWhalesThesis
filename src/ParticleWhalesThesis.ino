@@ -5,6 +5,7 @@
 #include "math.h"
 #include "Base64RK.h"
 
+
 //------- My Imports
 #include "config.h"
 
@@ -16,7 +17,6 @@
 #include "sensors/TimeManager.h"
 
 #include "sound/SoundManager.h"
-
 
 int BUFFER_SIZE = 5120;
 
@@ -58,11 +58,11 @@ void setup() {
   Serial.println("Connected to Particle ");
 
 
-  connectSDCard();
 
   // register the cloud function
   Particle.function("enableap", enableSoftAp);
   Particle.function("enableread", enableReading);
+  Particle.function("ping", ping);
 
   //Initialize Objects
   bar100Sensor = new Bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
@@ -79,10 +79,6 @@ void setup() {
 void loop() {
 
   if(canRecord){
-    if(timeManager->canReadSensors()){
-      readSensors();
-      saveRecordedData();
-    }
     recordingSoundLoop();
   }
 
@@ -145,10 +141,9 @@ void recordingSoundLoop(){
     // In this state we can start record
     case STATE_STARTRECORDING:
       connectSDCard();
-      recordingStart = millis();
       changeDirectory("Audio");
       startRecordingState(getAudiFileName());
-      changeDirectory("/");
+      recordingStart = millis();
       state = STATE_RUNNING;
       break;
 
@@ -166,8 +161,15 @@ void recordingSoundLoop(){
     // Then setDelay for the next reading to start
     case STATE_FINISH:
       finishState();
+      changeDirectory("/");
       state = STATE_STARTRECORDING;
+
+      if(timeManager->canReadSensors()){
+        readSensors();
+        saveRecordedData();
+      }
       delay(1000);
+
       break;
   }
 }
@@ -175,7 +177,6 @@ void recordingSoundLoop(){
 // Current Data
 //"date,audioFile,latitude,longitude,temperature,depth,altitude,pressure,turbidity,ph,oxygen"
 void saveRecordedData(){
-  connectSDCard();
   if (!sd.exists(cfg.fileName)) {
     Serial.println("File don't exists creating it now: " + cfg.fileName);
     // open the file for write at end like the "Native SD library"
@@ -224,7 +225,7 @@ void connectSDCard(){
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // Change to SPI_FULL_SPEED for more performance.
-  if (!sd.begin(chipSelect, SPI_HALF_SPEED)) {
+  if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {
     sd.initErrorHalt();
   }
 }
@@ -341,6 +342,8 @@ int enableSoftAp(String s){
   return 0;
 }
 
+
+
 // Debug functions
 int enableReading(String s){
   canRecord = !canRecord;
@@ -348,4 +351,8 @@ int enableReading(String s){
     return 0;
   }
   return 1;
+}
+
+int ping(String s){
+  return 5;
 }
