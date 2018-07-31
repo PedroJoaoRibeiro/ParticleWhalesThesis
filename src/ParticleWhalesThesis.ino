@@ -77,7 +77,6 @@ void setup() {
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
-
   if(canRecord){
     recordingSoundLoop();
   }
@@ -88,13 +87,33 @@ void loop() {
 // Reads the sensors values
 void readSensors(){
   timeManager->record();
+
+  gpsSensor->record();
+
+  bar100Sensor->record();
+
+  turbiditySensor->record();
+
+  phMeterSensor->record();
+
+  dissolvedOxygenSensor->setTemperature(bar100Sensor->getTemperature());
+  dissolvedOxygenSensor->record();
+
+  if(dissolvedOxygenSensor->getRecordValue() == "0.00,"){
+    delay(100);
+    readSensors();
+  }
+
+}
+
+
+void printResults(){
   Serial.println("Date:");
   Serial.println(timeManager->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  gpsSensor->record();
   Serial.println("GPS    Lat, Long");
   Serial.println(gpsSensor->getRecordValue());
 
@@ -102,39 +121,41 @@ void readSensors(){
   Serial.println("----------------");
   Serial.println("----------------");
 
-
-  bar100Sensor->record();
   Serial.println("pressure, temperature, depth, altitude");
   Serial.println(bar100Sensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  turbiditySensor->record();
   Serial.println("Turbidity  1 == HIGH || 0 == LOW");
   Serial.println(turbiditySensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-  phMeterSensor->record();
   Serial.println("PH: ");
   Serial.println(phMeterSensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
 
-
-
-  dissolvedOxygenSensor->setTemperature(bar100Sensor->getTemperature());
-  dissolvedOxygenSensor->record();
   Serial.println("DissolvedOxygenSensor: ");
   Serial.println(dissolvedOxygenSensor->getRecordValue());
 
   Serial.println("----------------");
   Serial.println("----------------");
-}
 
+  String dataToWrite = timeManager->getRecordValue() + ","; //date
+  dataToWrite += gpsSensor->getRecordValue() + ",";         //gps -> latitude,longitude
+  dataToWrite += bar100Sensor->getRecordValue() + ",";      //temperature,depth,altitude,pressure
+  dataToWrite += turbiditySensor->getRecordValue() + ",";   //turbidity
+  dataToWrite += phMeterSensor->getRecordValue() + ",";     //ph
+  dataToWrite += dissolvedOxygenSensor->getRecordValue();   //oxygen
+
+  Serial.println(dataToWrite);
+  Particle.publish("recordedData", dataToWrite);
+
+}
 
 void recordingSoundLoop(){
   switch (state) {
@@ -354,5 +375,7 @@ int enableReading(String s){
 }
 
 int ping(String s){
+  readSensors();
+  printResults();
   return 5;
 }

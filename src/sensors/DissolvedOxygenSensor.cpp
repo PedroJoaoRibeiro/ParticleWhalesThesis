@@ -27,13 +27,13 @@ void DissolvedOxygenSensor::record(){
         analogBufferTemp[copyIndex]= analogBuffer[copyIndex];
       }
       averageVoltage = getMedianNum(analogBufferTemp,SCOUNT) * (float)VREF / 1024.0; // read the value more stable by the median filtering algorithm
-      Serial.print(F("Temperature:"));
-      Serial.print(temperature,1);
-      Serial.print(F("^C"));
+      //Serial.print(F("Temperature:"));
+      //Serial.print(temperature,1);
+      //Serial.print(F("^C"));
       doValue = pgm_read_float_near( &SaturationValueTab[0] + (int)(SaturationDoTemperature+0.5) ) * averageVoltage / SaturationDoVoltage;  //calculate the do value, doValue = Voltage / SaturationDoVoltage * SaturationDoValue(with temperature compensation)
-      Serial.print(F(",  DO Value:"));
-      Serial.print(doValue,2);
-      Serial.println(F("mg/L"));
+      //Serial.print(F(",  DO Value:"));
+      //Serial.print(doValue,2);
+      //Serial.println(F("mg/L"));
    }
 
    if(serialDataAvailable() > 0)
@@ -45,7 +45,7 @@ void DissolvedOxygenSensor::record(){
 }
 
 String DissolvedOxygenSensor::getRecordValue(){
-  return String(doValue) + ",";
+  return String(doValue,2) + ",";
 }
 
 void DissolvedOxygenSensor::setTemperature(float temp){

@@ -29,9 +29,9 @@ void PHMeterSensor::record(){
     avgValue+=buf[i];
   float phValue=(float)avgValue*5.0/1024/6; //convert the analog into millivolt
   phValue=3.5*phValue;                      //convert the millivolt into pH value
-  ph = phValue;
+  ph = phValue + offset;
 }
 
 String PHMeterSensor::getRecordValue(){
-  return String(ph);
+  return String(ph,2);
 }
