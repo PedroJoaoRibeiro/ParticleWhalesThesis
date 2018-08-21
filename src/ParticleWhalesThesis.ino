@@ -121,7 +121,7 @@ void printResults(){
   Serial.println("----------------");
   Serial.println("----------------");
 
-  Serial.println("pressure, temperature, depth, altitude");
+  Serial.println("temperature, depth, altitude, pressure");
   Serial.println(bar100Sensor->getRecordValue());
 
   Serial.println("----------------");
