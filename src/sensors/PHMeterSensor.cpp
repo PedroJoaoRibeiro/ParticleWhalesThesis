@@ -27,7 +27,7 @@ void PHMeterSensor::record(){
   avgValue=0;
   for(int i=2;i<8;i++)                      //take the average value of 6 center sample
     avgValue+=buf[i];
-  float phValue=(float)avgValue*5.0/1024/6; //convert the analog into millivolt
+  float phValue=(float)avgValue*3.3/4095/6; //convert the analog into millivolt
   phValue=3.5*phValue;                      //convert the millivolt into pH value
   ph = phValue + offset;
 }

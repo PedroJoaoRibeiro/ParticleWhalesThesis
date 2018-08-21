@@ -2,7 +2,7 @@
 
 class PHMeterSensor: public SensorsInterface {
   int phSensorPin = A2;
-  float offset = -33.3;
+  float offset = 0.35;
   float ph;
 
   public:
