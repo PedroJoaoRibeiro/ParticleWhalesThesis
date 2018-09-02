@@ -2,6 +2,8 @@
 
 
 // Public Methods Defenition
+
+// constructor method that initializes the sensor and set its fluidDensity
 Bar100Sensor::Bar100Sensor(int fluidDensity){
   _fluidDensity = fluidDensity;
 
@@ -17,10 +19,12 @@ Bar100Sensor::Bar100Sensor(int fluidDensity){
   }
 }
 
+// reads all the values from the sensor and saves them in the sensor object
 void Bar100Sensor::record(){
   sensor.read();
 }
 
+// returns all the values in a string, where each value is separated by a comma
 String Bar100Sensor::getRecordValue(){
   String str = String(sensor.temperature(),2) + ",";
   str += String(sensor.depth(),2) + ",";
@@ -29,6 +33,7 @@ String Bar100Sensor::getRecordValue(){
   return str;
 }
 
+// returns the current temperature
 float Bar100Sensor::getTemperature(){
   return sensor.temperature();
 }

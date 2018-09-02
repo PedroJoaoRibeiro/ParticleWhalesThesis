@@ -1,11 +1,10 @@
 #include "PHMeterSensor.h"
 
-
-
-// Public Methods Defenition
+// Construction object, doesn't need to do anything in this particular case
 PHMeterSensor::PHMeterSensor(){
 }
 
+// record the current pH value and saves it
 void PHMeterSensor::record(){
   unsigned long int avgValue;  //Store the average value of the sensor feedback
   float b;
@@ -32,6 +31,7 @@ void PHMeterSensor::record(){
   ph = phValue + offset;
 }
 
+// returns the recorded value in a string
 String PHMeterSensor::getRecordValue(){
   return String(ph,2);
 }

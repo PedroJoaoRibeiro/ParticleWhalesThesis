@@ -1,10 +1,9 @@
 #include "SoundManager.h"
-//------Files Creation-------------------//
-//Config CONFIG = getDefaultConfig();  //Read the default file
-File rec;
-IntervalTimer timer;
 
-Config CONFIG = getDefaultConfig();
+File rec;	// object of the file
+IntervalTimer timer;	// Object from IntervalTimer library
+
+Config CONFIG = getDefaultConfig();	//config Structure
 
 
 //------------Variable for wav file-------------------//
@@ -38,18 +37,13 @@ int writer = 1;
 short sample = 0;
 bool firstTime = true;
 
-
-//----- Main Recording loop
-void lauchTimer(){
-	// 8000 samples/sec = 125 microseconds (The minimum timer period is about 10 micrseconds)
-
-}
-
+// function that starts the recording
 void startRecordingState(String fileName){
 	writeWavHeader(fileName);
 	Serial.println("Start Recording audio");
 	Serial.println(fileName);
 
+	// Initializes the buffer
 	for(size_t ii = 0; ii < 2; ii++) {
 				buffers[ii].free = true;
 				buffers[ii].index = 0;
@@ -57,6 +51,7 @@ void startRecordingState(String fileName){
 			sampleIndex = 0;
 			sendIndex = 0;
 
+	// the timer never doesn't need to end after the first call since we are always listening
 	if (firstTime) {
 		timer.begin(timerISR, 1000000 / CONFIG.sampleRate, uSec, TIMER4);
 		firstTime = false;
@@ -64,6 +59,7 @@ void startRecordingState(String fileName){
 	writer = 0;
 }
 
+// the state where we check if the buffer is full, and if it is, we save it to the SD card
 void recordingState(){
 	if (sendIndex < sampleIndex) {
 	// There is a sample buffer to send
@@ -78,6 +74,7 @@ void recordingState(){
 
 }
 
+// finish Recording and closing the file
 void finishState(){
 	Serial.println("Finish Recording");
 	writer = 1;
@@ -88,7 +85,7 @@ void finishState(){
 }
 
 
-
+// opening a new file and write the initial wav header
 void writeWavHeader(String fileName) {
 
 	if (!rec.open(fileName, O_CREAT | O_TRUNC | O_RDWR)) {
@@ -138,10 +135,12 @@ void writeWavHeader(String fileName) {
   rec.write(byte1);  rec.write(byte2);  rec.write(byte3);  rec.write(byte4);
 }
 
+// closing the file
 void writeOutHeader(){
 	rec.close();
 }
 
+// timer function where it saves the recording bytes to a buffer, it's called automatically
 void timerISR() {
 
 	// This is an interrupt service routine. Don't put any heavy calculations here

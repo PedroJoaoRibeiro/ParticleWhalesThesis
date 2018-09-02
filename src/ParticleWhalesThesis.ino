@@ -22,13 +22,17 @@ int BUFFER_SIZE = 5120;
 
 Config cfg = getDefaultConfig();
 
-//------- My Sensors Objects
+//------- Needed sensors ----- Don't remove them
+GPSSensor* gpsSensor;
+TimeManager* timeManager;
+
+
+//------- My Sensors Objects // Add New Sensors here
 Bar100Sensor* bar100Sensor;
 TurbiditySensor* turbiditySensor;
 PHMeterSensor* phMeterSensor;
-GPSSensor* gpsSensor;
 DissolvedOxygenSensor* dissolvedOxygenSensor;
-TimeManager* timeManager;
+
 
 
 //ENABLES threads needed for softap Mode
@@ -43,7 +47,7 @@ bool canRecord = false;
 
 
 // recordingSoundState
-enum State { STATE_STARTRECORDING, STATE_CONNECT, STATE_RUNNING, STATE_FINISH};
+enum State { STATE_STARTRECORDING, STATE_RUNNING, STATE_FINISH};
 State state = STATE_STARTRECORDING;
 unsigned long recordingStart;
 
@@ -54,22 +58,25 @@ void myPages(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, W
 // setup() runs once, when the device is first turned on.
 void setup() {
   setupSerial(); //allows output in serial Monitor
-  waitUntil(Particle.connected);
+  waitUntil(Particle.connected); // waitUntil network is available
   Serial.println("Connected to Particle ");
 
 
 
   // register the cloud function
-  Particle.function("enableap", enableSoftAp);
-  Particle.function("enableread", enableReading);
+  Particle.function("enableap", enableSoftAp); // function to start AP Mode
+  Particle.function("enableread", enableReading); // function to start recording Mode
 
-  //Initialize Objects
+  // Needed Objects
+  gpsSensor = new GPSSensor();
+  timeManager = new TimeManager();
+
+  //Initialize your Objects
   bar100Sensor = new Bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
   turbiditySensor = new TurbiditySensor();
   phMeterSensor = new PHMeterSensor();
-  gpsSensor = new GPSSensor();
   dissolvedOxygenSensor = new DissolvedOxygenSensor();
-  timeManager = new TimeManager();
+
 
 
 }
@@ -98,6 +105,7 @@ void readSensors(){
   dissolvedOxygenSensor->setTemperature(bar100Sensor->getTemperature());
   dissolvedOxygenSensor->record();
 
+  // dissolvedOxygenSensor needs 10 values before reading is correct
   if(dissolvedOxygenSensor->getRecordValue() == "0.00,"){
     delay(100);
     readSensors();
@@ -105,7 +113,7 @@ void readSensors(){
 
 }
 
-
+// print result of sensors for debugging
 void printResults(){
   Serial.println("Date:");
   Serial.println(timeManager->getRecordValue());
@@ -154,6 +162,7 @@ void printResults(){
   Serial.println(dataToWrite);
 }
 
+// recordingSoundLoop in the end of the loop calls the timeManager to check if we can read the sensors
 void recordingSoundLoop(){
   switch (state) {
     // In this state we can start record
@@ -221,6 +230,7 @@ void saveRecordedData(){
 
 }
 
+// gets a name for the audioFile based on the Currentdate
 String getAudiFileName(){
   String aux = timeManager->getDateNow().replace(":", "");
   return cfg.DEVICE_ID + aux + ".wav";
@@ -247,6 +257,7 @@ void connectSDCard(){
   }
 }
 
+// changes directory inside the SD card
 void changeDirectory(String path){
   if(!sd.chdir(path, true)){
     Serial.println("error changing directory: "+ path);
@@ -254,6 +265,7 @@ void changeDirectory(String path){
   }
 }
 
+// function than handles the requests to the device while in softap Mode
 void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved)
 {
     Serial.printlnf("handling page %s", url);
@@ -278,7 +290,8 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
     }
 }
 
-
+// generates a string with the response to the client,
+// based on the last part of the data that the client received
 String dataToSend(String dataPart){
     connectSDCard();
     int i;
@@ -323,6 +336,7 @@ String dataToSend(String dataPart){
     return getInitialJsonBody(i) + response + getFinalJsonbody(true);
 }
 
+// generates the initial jsonBody
 String getInitialJsonBody(int dataPart){
   String jsonBody = "{ \"deviceId\": \"";
   jsonBody += cfg.DEVICE_ID;
@@ -332,6 +346,7 @@ String getInitialJsonBody(int dataPart){
   return jsonBody;
 }
 
+// generates the final jsonBody
 String getFinalJsonbody(bool b){
   String jsonBody = "\",\"isFinalData\":";
   if (b) {

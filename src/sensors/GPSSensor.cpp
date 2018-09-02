@@ -7,6 +7,8 @@ GPSSensor::GPSSensor(){
   sprintf(szInfo, "0.0,0.0");
 }
 
+// records the current location if we have valid gps coordinates, if not,
+// we don't change the current location
 void GPSSensor::record(){
   bool isValidGPS = false;
 
@@ -31,6 +33,7 @@ void GPSSensor::record(){
     }
 }
 
+// returns the value recorded as a String
 String GPSSensor::getRecordValue(){
   String str = szInfo;
   return str;

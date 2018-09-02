@@ -12,10 +12,13 @@
 #define SaturationDoVoltageAddress 12          //the address of the Saturation Oxygen voltage stored in the EEPROM
 #define SaturationDoTemperatureAddress 16      //the address of the Saturation Oxygen temperature stored in the EEPROM
 
+// implementation of the DissolvedOxygenSensor code from manufacturers
+// The calibration needs to be done prior the first usage
+// https://www.dfrobot.com/wiki/index.php/Gravity:_Analog_Dissolved_Oxygen_Sensor_SKU:SEN0237
 class DissolvedOxygenSensor: public SensorsInterface {
-  int DoSensorPin = A5;
-  float doValue;      //current dissolved oxygen value, unit; mg/L
-  float temperature;
+  int DoSensorPin = A5; // Pin where the sensor is connected
+  float doValue;        // current dissolved oxygen value, unit; mg/L
+  float temperature;    // value of the current temperature
 
   char receivedBuffer[ReceivedBufferLength+1];    // store the serial command
   byte receivedBufferIndex = 0;
@@ -40,13 +43,13 @@ class DissolvedOxygenSensor: public SensorsInterface {
     };
 
   public:
-    DissolvedOxygenSensor();
-    virtual void record();
-    virtual String getRecordValue();
+    DissolvedOxygenSensor();  // initializes the sensor
+    virtual void record();    // records the value and saves it
+    virtual String getRecordValue();  // returns the value recorded as a String
 
-    void setTemperature(float temp);
+    void setTemperature(float temp);  // updates the current temperature
 
-  private:
+  private:  // Private methods mainly used for calibration
     boolean serialDataAvailable(void);
     byte uartParse();
     void doCalibration(byte mode);
