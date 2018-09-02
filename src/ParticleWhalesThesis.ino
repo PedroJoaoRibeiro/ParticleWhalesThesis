@@ -62,7 +62,6 @@ void setup() {
   // register the cloud function
   Particle.function("enableap", enableSoftAp);
   Particle.function("enableread", enableReading);
-  Particle.function("ping", ping);
 
   //Initialize Objects
   bar100Sensor = new Bar100Sensor(997); // kg/m^3 (freshwater, 1029 for seawater)
@@ -153,8 +152,6 @@ void printResults(){
   dataToWrite += dissolvedOxygenSensor->getRecordValue();   //oxygen
 
   Serial.println(dataToWrite);
-  Particle.publish("recordedData", dataToWrite);
-
 }
 
 void recordingSoundLoop(){
@@ -219,7 +216,6 @@ void saveRecordedData(){
   dataToWrite += dissolvedOxygenSensor->getRecordValue();   //oxygen
 
   Serial.println(dataToWrite);
-  Particle.publish("recordedData", dataToWrite);
   myFile.println(dataToWrite);
   myFile.close();
 
@@ -268,8 +264,6 @@ void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Wr
         cb(cbArg, 0, 301, "text/plain", &h);
         return;
     }
-
-
 
     String auxURl = url;
     String dataPart = auxURl.substring(auxURl.indexOf("?") + 1, auxURl.length());
@@ -372,10 +366,4 @@ int enableReading(String s){
     return 0;
   }
   return 1;
-}
-
-int ping(String s){
-  readSensors();
-  printResults();
-  return 5;
 }
