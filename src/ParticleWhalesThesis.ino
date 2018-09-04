@@ -386,7 +386,7 @@ int enableSoftAp(String s){
     canRecord = false;
   }
   WiFi.listen();
-  //WiFi.setListenTimeout(60);
+  softAPMode = true;
   softap_set_application_page_handler(myPage, nullptr);
   Serial.println("Now Listening: ");
   return 0;
