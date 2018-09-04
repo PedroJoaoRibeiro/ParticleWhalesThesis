@@ -37,3 +37,8 @@ String Bar100Sensor::getRecordValue(){
 float Bar100Sensor::getTemperature(){
   return sensor.temperature();
 }
+
+// returns the current Depth
+float Bar100Sensor::getDepth(){
+  return sensor.depth();
+}

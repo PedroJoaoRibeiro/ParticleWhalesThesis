@@ -23,4 +23,7 @@ class Bar100Sensor: public SensorsInterface {
 
     // returns the current temperature value that's needed by other sensors
     float getTemperature();
+
+    // returns the current depth value that's needed by the main loop
+    float getDepth();
 };

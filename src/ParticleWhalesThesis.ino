@@ -44,7 +44,7 @@ const uint8_t chipSelect = D5;
 File myFile;
 
 bool canRecord = false;
-
+bool softAPMode = false;
 
 // recordingSoundState
 enum State { STATE_STARTRECORDING, STATE_RUNNING, STATE_FINISH};
@@ -77,8 +77,6 @@ void setup() {
   phMeterSensor = new PHMeterSensor();
   dissolvedOxygenSensor = new DissolvedOxygenSensor();
 
-
-
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -86,7 +84,29 @@ void loop() {
   if(canRecord){
     recordingSoundLoop();
   }
+  // checks if the current depth is less than 1 meter, if it is
+  // disables the reading mode and turns the softAP mode on
+  if(bar100Sensor->getDepth() > -1  && softAPMode == false){
+    canRecord = false;
+    state = STATE_STARTRECORDING;
 
+    softAPMode = true;
+
+    WiFi.listen(); // Enables Listening Mode
+
+    softap_set_application_page_handler(myPage, nullptr);
+    Serial.println("Now Listening: ");
+  }
+
+  // checks if current depth is bellow 1 meter and if softAP is on, if it is
+  // disables the softAP mode and turns the reading mode on
+  if(bar100Sensor->getDepth() < -1 && softAPMode == true){
+    canRecord = true;
+
+    softAPMode = false;
+
+    WiFi.listen(false); // Disables Listening Mode
+  }
 }
 
 
