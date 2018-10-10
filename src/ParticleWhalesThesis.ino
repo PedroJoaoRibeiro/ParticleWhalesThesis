@@ -33,6 +33,7 @@ TurbiditySensor* turbiditySensor;
 PHMeterSensor* phMeterSensor;
 DissolvedOxygenSensor* dissolvedOxygenSensor;
 
+int lock = 0;
 
 
 //ENABLES threads needed for softap Mode
@@ -86,27 +87,19 @@ void loop() {
   }
   // checks if the current depth is less than 1 meter, if it is
   // disables the reading mode and turns the softAP mode on
-  if(bar100Sensor->getDepth() > -1  && softAPMode == false){
-    canRecord = false;
-    state = STATE_STARTRECORDING;
+  if(softAPMode == true){
 
-    softAPMode = true;
-
-    WiFi.listen(); // Enables Listening Mode
-
-    softap_set_application_page_handler(myPage, nullptr);
-    Serial.println("Now Listening: ");
   }
 
   // checks if current depth is bellow 1 meter and if softAP is on, if it is
   // disables the softAP mode and turns the reading mode on
-  if(bar100Sensor->getDepth() < -1 && softAPMode == true){
+  /*if(bar100Sensor->getDepth() < -1 && softAPMode == true){
     canRecord = true;
 
     softAPMode = false;
 
     WiFi.listen(false); // Disables Listening Mode
-  }
+  }*/
 }
 
 
@@ -272,7 +265,7 @@ void connectSDCard(){
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // Change to SPI_FULL_SPEED for more performance.
-  if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {
+  if (!sd.begin(chipSelect, SPI_HALF_SPEED)) {
     sd.initErrorHalt();
   }
 }
@@ -288,26 +281,27 @@ void changeDirectory(String path){
 // function than handles the requests to the device while in softap Mode
 void myPage(const char* url, ResponseCallback* cb, void* cbArg, Reader* body, Writer* result, void* reserved)
 {
-    Serial.printlnf("handling page %s", url);
 
-    if (strcmp(url,"/index")==0) {
-        Serial.println("sending redirect");
-        Header h("Location: /index.html\r\n");
-        cb(cbArg, 0, 301, "text/plain", &h);
-        return;
-    }
+      Serial.printlnf("handling page %s", url);
 
-    String auxURl = url;
-    String dataPart = auxURl.substring(auxURl.indexOf("?") + 1, auxURl.length());
-    Serial.println("dataPat: " + dataPart);
+      if (strcmp(url,"/index")==0) {
+          Serial.println("sending redirect");
+          Header h("Location: /index.html\r\n");
+          cb(cbArg, 0, 301, "text/plain", &h);
+          return;
+      }
 
-    if (strcmp(auxURl.substring(0,auxURl.indexOf("?")),"/data")==0) {
-        cb(cbArg, 0, 200, "text/json", nullptr);
-        result->write(dataToSend(dataPart));
-    }
-    else {
-        cb(cbArg, 0, 404, nullptr, nullptr);
-    }
+      String auxURl = url;
+      String dataPart = auxURl.substring(auxURl.indexOf("?") + 1, auxURl.length());
+      Serial.println("dataPat: " + dataPart);
+
+      if (strcmp(auxURl.substring(0,auxURl.indexOf("?")),"/data")==0) {
+          cb(cbArg, 0, 200, "text/json", nullptr);
+          result->write(dataToSend(dataPart));
+      }
+      else {
+          cb(cbArg, 0, 404, nullptr, nullptr);
+      }
 }
 
 // generates a string with the response to the client,
@@ -324,36 +318,41 @@ String dataToSend(String dataPart){
       Serial.println("sending data from: " + dataPart);
     }
 
-    // open the file to read
-    if (!myFile.open(cfg.fileName, O_READ)) {
-      sd.errorHalt(("opening  " + cfg.fileName + " for read failed"));
-    }
-
-    // read from the file until there's nothing else in it:
-    int data;
-
     String response = "";
-    myFile.seek(i);
 
-    while ((data = myFile.read()) >= 0) {
-      char c = data;
-      if (c == '\n' || c == '\r') { // substitutes \n and \r to ; so that json can be accepted
-        if (!response.endsWith(";")) {
-          response += ";";
+    WITH_LOCK(Serial){
+      // open the file to read
+      if (!myFile.open(cfg.fileName, O_READ)) {
+        sd.errorHalt(("opening  " + cfg.fileName + " for read failed"));
+      }
+
+      // read from the file until there's nothing else in it:
+      int data;
+
+
+      myFile.seek(i);
+
+      while ((data = myFile.read()) >= 0) {
+
+        char c = data;
+        if (c == '\n' || c == '\r') { // substitutes \n and \r to ; so that json can be accepted
+          if (!response.endsWith(";")) {
+            response += ";";
+          }
+        } else {
+          response += c;
         }
-      } else {
-        response += c;
-      }
-      i ++;
+        i ++;
 
-      if (response.length() >= BUFFER_SIZE) {
-        myFile.close();
-        return getInitialJsonBody(i) + response + getFinalJsonbody(false);
+        if (response.length() >= BUFFER_SIZE) {
+          myFile.close();
+          return getInitialJsonBody(i) + response + getFinalJsonbody(false);
+        }
       }
+      myFile.close();
+      Serial.println("done");
     }
-
-    myFile.close();
-    return getInitialJsonBody(i) + response + getFinalJsonbody(true);
+    return getInitialJsonBody(i) + response + getFinalJsonbody(true);;
 }
 
 // generates the initial jsonBody

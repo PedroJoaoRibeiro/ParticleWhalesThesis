@@ -21,7 +21,7 @@ byte byte1, byte2, byte3, byte4;
 typedef struct {
 	volatile bool free = true;
 	volatile size_t  index = 0;
-	byte data[5120]; // = new byte[24576];
+	byte data[1024]; // = new byte[24576];
 } SampleBuf;
 
 SampleBuf buffers[2]; // = new SampleBuf[CONFIG.numberBuffers];
